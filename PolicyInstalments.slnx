@@ -1,0 +1,10 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/PolicyInstalments.Api/PolicyInstalments.Api.csproj" />
+    <Project Path="src/PolicyInstalments.Domain/PolicyInstalments.Domain.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/PolicyInstalments.Api.IntegrationTests/PolicyInstalments.Api.IntegrationTests.csproj" />
+    <Project Path="tests/PolicyInstalments.Domain.Tests/PolicyInstalments.Domain.Tests.csproj" />
+  </Folder>
+</Solution>
