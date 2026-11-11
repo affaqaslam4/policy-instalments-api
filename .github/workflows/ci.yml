@@ -27,8 +27,25 @@ jobs:
           name: test-results
           path: TestResults
 
+  web:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - run: npm ci
+      - run: npm run lint
+      - run: npm test
+      - run: npm run build
+
   image:
-    needs: test
+    needs: [test, web]
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -43,7 +60,7 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      - name: Build and publish image
+      - name: Build and publish API image
         uses: docker/build-push-action@v6
         with:
           context: .
@@ -54,3 +71,13 @@ jobs:
             ghcr.io/${{ github.repository }}:${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+      - name: Build and publish web image
+        uses: docker/build-push-action@v6
+        with:
+          context: web
+          push: ${{ github.event_name == 'push' }}
+          tags: |
+            ghcr.io/${{ github.repository }}-web:latest
+            ghcr.io/${{ github.repository }}-web:${{ github.sha }}
+          cache-from: type=gha,scope=web
+          cache-to: type=gha,mode=max,scope=web

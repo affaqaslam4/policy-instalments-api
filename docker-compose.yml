@@ -22,5 +22,12 @@ services:
       mongo:
         condition: service_healthy
 
+  web:
+    build: ./web
+    ports:
+      - "3000:8080"
+    depends_on:
+      - api
+
 volumes:
   mongo-data:

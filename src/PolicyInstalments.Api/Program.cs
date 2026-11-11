@@ -12,6 +12,7 @@ var databaseName = builder.Configuration["Mongo:Database"] ?? "policy_instalment
 builder.Services.AddSingleton<IMongoClient>(_ => new MongoClient(mongoConnection));
 builder.Services.AddSingleton(sp => sp.GetRequiredService<IMongoClient>().GetDatabase(databaseName));
 builder.Services.AddSingleton<IPolicyRepository, MongoPolicyRepository>();
+builder.Services.AddSingleton(TimeProvider.System);
 
 builder.Services
     .AddGraphQLServer()

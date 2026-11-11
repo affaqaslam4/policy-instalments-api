@@ -83,6 +83,30 @@ public class PolicyGraphQLTests(ApiFactory factory)
         Assert.Contains("already exists", second.GetProperty("errors")[0].GetProperty("message").GetString());
     }
 
+    [Fact]
+    public async Task Portfolio_report_includes_overdue_instalments_as_of_a_date()
+    {
+        var number = UniqueNumber();
+        await Send(CreatePolicy, new { input = NewPolicy(number) }); // GBP 1,000 quarterly from 2026-01-01
+
+        var result = await Send("""
+            query($asOf: LocalDate) {
+              portfolioReport(asOf: $asOf) {
+                asOf
+                byCurrency { currency overdueCount }
+                overdue { policyNumber instalmentNumber daysOverdue }
+              }
+            }
+            """, new { asOf = "2026-05-01" });
+
+        var report = result.GetProperty("data").GetProperty("portfolioReport");
+        Assert.Equal("2026-05-01", report.GetProperty("asOf").GetString());
+        var mine = report.GetProperty("overdue").EnumerateArray()
+            .Where(o => o.GetProperty("policyNumber").GetString() == number)
+            .Select(o => o.GetProperty("instalmentNumber").GetInt32());
+        Assert.Equal([1, 2], mine); // due Jan 1 and Apr 1; Jul 1 is not due yet
+    }
+
     private async Task<string> CreateAndGetId()
     {
         var created = await Send(CreatePolicy, new { input = NewPolicy(UniqueNumber()) });

@@ -3,7 +3,8 @@
 [![CI](https://github.com/affaqaslam4/policy-instalments-api/actions/workflows/ci.yml/badge.svg)](https://github.com/affaqaslam4/policy-instalments-api/actions/workflows/ci.yml)
 
 A small insurance service that creates policies, splits the premium into an instalment schedule and records
-payments against it. GraphQL API on .NET 9 with Hot Chocolate, MongoDB for storage, and Docker for running it.
+payments against it. GraphQL API on .NET 9 with Hot Chocolate, MongoDB for storage, a React + TypeScript front end
+with Apollo Client, and Docker for running it all.
 
 ## What it does
 
@@ -15,10 +16,27 @@ payments against it. GraphQL API on .NET 9 with Hot Chocolate, MongoDB for stora
   amount must match.
 - **Lists overdue instalments** for any date.
 - **Rejects duplicate policy numbers** with a unique index in MongoDB.
+- **Reports on the portfolio**: totals per currency (never added across currencies), collections expected over the
+  next six months, and overdue instalments by age.
+
+## Front end
+
+React 19 + TypeScript (Vite), Apollo Client, React Router, AG Grid and Recharts.
+
+- **Dashboard**: tiles for policies, written premium, collected and overdue; a donut for collection status; a bar
+  chart of expected collections for the next 6 months; overdue amounts by age (1–30, 31–60, 61–90, 90+ days); and
+  a list of overdue instalments. A currency switch shows one currency at a time.
+- **Policies**: a sortable, filterable AG Grid of all policies with collected and outstanding amounts.
+- **New policy**: a form with instant validation that mirrors the server rules, and a preview of the split
+  ("First payment $3,333.34, then 2 × $3,333.33"). The server still enforces every rule.
+- **Policy page**: details, a progress bar, and an instalment grid with Paid / Due / Overdue badges. Only the next
+  unpaid instalment can be paid, matching the domain rule. Paying updates the page through Apollo's normalised cache,
+  and any rule the server rejects is shown in the dialog.
 
 ## Stack
 
-.NET 9 · C# · Hot Chocolate 15 (GraphQL) · MongoDB 8 · xUnit · Testcontainers · Docker · GitHub Actions
+.NET 9 · C# · Hot Chocolate 15 (GraphQL) · MongoDB 8 · React 19 · TypeScript · Apollo Client · AG Grid · Recharts ·
+xUnit · Vitest · Testing Library · Testcontainers · Docker · nginx · GitHub Actions
 
 ## Project layout
 
@@ -29,6 +47,10 @@ src/
 tests/
   PolicyInstalments.Domain.Tests/           Unit tests for the rules (written before the code).
   PolicyInstalments.Api.IntegrationTests/   GraphQL tests against a real MongoDB started by Testcontainers.
+web/
+  src/pages/       Dashboard, policies grid, create form, policy page.
+  src/lib/         GraphQL documents and types, formatting, form rules, report shaping (all unit tested).
+  scripts/seed.mjs Loads demo policies through the API.
 ```
 
 ## Run it
@@ -39,12 +61,27 @@ With Docker only:
 docker compose up --build
 ```
 
-Then open the GraphQL IDE at http://localhost:8080/graphql. The health check is at http://localhost:8080/health.
+- App: http://localhost:3000 (nginx serves the React build and proxies `/graphql` to the API)
+- GraphQL IDE: http://localhost:8080/graphql
+- Health check: http://localhost:8080/health
+
+Load demo data (11 policies across USD, EUR and GBP, with paid, overdue and upcoming instalments):
+
+```bash
+cd web && npm install && npm run seed
+```
+
+Front-end development with hot reload (API running on :8080):
+
+```bash
+cd web && npm run dev
+```
 
 Run the tests (Docker must be running for the integration tests):
 
 ```bash
 dotnet test PolicyInstalments.slnx
+cd web && npm test
 ```
 
 ## Example
@@ -96,9 +133,12 @@ readable message, for example "Instalments must be paid in order; an earlier ins
   writes go through mutations.
 - **Docker image.** A multi-stage build restores in a cached layer, publishes in the SDK image, and runs on the
   ASP.NET runtime image as a non-root user.
+- **Front end.** Pages are lazy-loaded, so the charts and the grid download only when needed, and only the AG Grid
+  modules in use are registered. Validation and the schedule preview are pure functions, unit tested without a
+  browser. Status badges use an icon and a label, never colour alone.
 - **CI.** Every push and pull request builds the code and runs all tests, including the Testcontainers ones, on
-  GitHub's Docker-enabled runners. Pushes to `main` then build the image and publish it to GitHub Container
-  Registry (`ghcr.io/affaqaslam4/policy-instalments-api`).
+  GitHub's Docker-enabled runners, and lints, tests and builds the front end. Pushes to `main` then publish both
+  images to GitHub Container Registry (`ghcr.io/affaqaslam4/policy-instalments-api` and `-web`).
 
 ## Possible next steps
 
