@@ -7,7 +7,7 @@ namespace PolicyInstalments.Api.IntegrationTests;
 /// <summary>Starts a real MongoDB in Docker and points the API at it. Shared by all tests in the collection.</summary>
 public sealed class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
 {
-    private readonly MongoDbContainer _mongo = new MongoDbBuilder().WithImage("mongo:8.0").Build();
+    private readonly MongoDbContainer _mongo = new MongoDbBuilder("mongo:8.0").Build();
 
     public Task InitializeAsync() => _mongo.StartAsync();
 
